@@ -6,6 +6,11 @@ const base = process.env.VITE_BASE_PATH ?? "/";
 export default defineConfig({
   base,
   plugins: [react()],
+    resolve: {
+    alias: {
+      "simple-peer": "simple-peer/simplepeer.min.js",
+    },
+  },
   define: { global: "globalThis" },
   optimizeDeps: {
     esbuildOptions: { define: { global: "globalThis" } },
