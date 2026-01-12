@@ -3,6 +3,11 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      "simple-peer": "simple-peer/simplepeer.min.js",
+    },
+  },
   define: {
     global: "globalThis",
   },
