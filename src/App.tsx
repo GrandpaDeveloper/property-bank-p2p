@@ -442,6 +442,7 @@ function OffersPanel({ state, conns }: { state: GameState; conns: Record<string,
             c.offer
               ? encodeQR({ kind: "OFFER", gameId: state.gameId, connId: c.connId, signal: c.offer })
               : null;
+          const offerLink = offerPayload ? buildOfferLink(offerPayload) : null;
 
           return (
             <div key={c.connId} className={rowBlock()}>
@@ -450,18 +451,18 @@ function OffersPanel({ state, conns }: { state: GameState; conns: Record<string,
                 <span style={{ fontSize: 12, color: "var(--muted)" }}>
                   {c.status === "waiting_answer" ? "esperando answer" : c.status === "connected" ? "conectado" : "creando"}
                 </span>
-                {offerPayload && (
-                  <Btn variant="ghost" onClick={() => { navigator.clipboard?.writeText(offerPayload); alert("Offer copiado"); }}>
+                {offerLink && (
+                  <Btn variant="ghost" onClick={() => { navigator.clipboard?.writeText(offerLink); alert("Link copiado"); }}>
                     Copiar
                   </Btn>
                 )}
               </Row>
 
-              {offerPayload ? (
+              {offerLink ? (
                 <div style={{ display: "grid", justifyItems: "center", gap: 8, marginTop: 10 }}>
-                  <QRCodeCanvas value={offerPayload} size={220} includeMargin />
+                  <QRCodeCanvas value={offerLink} size={220} includeMargin />
                   <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
-                    El jugador escanea este QR, genera un <b>Answer</b> y lo devolvés con tu escáner.
+                    El jugador escanea este QR y entra directo a la partida (link).
                   </div>
                 </div>
               ) : (
@@ -902,6 +903,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
   const [scanError, setScanError] = React.useState<string | null>(null);
   const [flash, setFlash] = React.useState<{ type: "ok" | "warn"; text: string } | null>(null);
   const flashTimer = React.useRef<number | null>(null);
+  const autoJoinRef = React.useRef(false);
 
   const [peer, setPeer] = React.useState<PeerInstance | null>(null);
   const [connId, setConnId] = React.useState<string>("");
@@ -919,6 +921,26 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
       if (flashTimer.current) window.clearTimeout(flashTimer.current);
     };
   }, []);
+
+  React.useEffect(() => {
+    const offerFromLink = getOfferFromLocation();
+    if (offerFromLink) {
+      setOfferText(offerFromLink);
+      showFlash("Offer cargado desde link.");
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!offerText.trim() || !name.trim() || status !== "idle" || autoJoinRef.current) return;
+    autoJoinRef.current = true;
+    try {
+      applyOffer(offerText.trim());
+      showFlash("Conectando...");
+    } catch (e: any) {
+      autoJoinRef.current = false;
+      showFlash(e?.message ?? "Offer inválido.", "warn");
+    }
+  }, [offerText, name, status]);
 
   const showFlash = (text: string, type: "ok" | "warn" = "ok") => {
     if (flashTimer.current) window.clearTimeout(flashTimer.current);
@@ -939,7 +961,8 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
   };
 
   const applyOffer = (text: string) => {
-    const decoded = decodeQR<{ kind: "OFFER"; gameId: string; connId: string; signal: SignalData }>(text);
+    const normalized = normalizeOfferText(text);
+    const decoded = decodeQR<{ kind: "OFFER"; gameId: string; connId: string; signal: SignalData }>(normalized);
     if (decoded.kind !== "OFFER") throw new Error("QR no es OFFER");
 
     setConnId(decoded.connId);
@@ -992,7 +1015,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
   const onScanOffer = (text: string) => {
     try {
       setScanError(null);
-      setOfferText(text);
+      setOfferText(normalizeOfferText(text));
       setScanOpen(false);
       showFlash("Offer cargado.");
     } catch (e: any) {
@@ -1100,7 +1123,11 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                   showFlash("Necesitás el Offer.", "warn");
                   return;
                 }
-                applyOffer(offerText.trim());
+                try {
+                  applyOffer(offerText.trim());
+                } catch (e: any) {
+                  showFlash(e?.message ?? "Offer inválido.", "warn");
+                }
               }}
             >
               Generar Answer
@@ -1316,6 +1343,39 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
 
 function rowBlock(): string {
   return "rounded-2xl border border-emerald-900/15 bg-white/70 p-3 shadow-sm";
+}
+
+function buildOfferLink(payload: string): string {
+  if (typeof window === "undefined") return payload;
+  const url = new URL(window.location.origin + window.location.pathname);
+  url.searchParams.set("offer", payload);
+  return url.toString();
+}
+
+function normalizeOfferText(text: string): string {
+  if (!text.startsWith("http")) return text;
+  try {
+    const url = new URL(text);
+    const direct = url.searchParams.get("offer");
+    if (direct) return direct;
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    return hashParams.get("offer") ?? text;
+  } catch {
+    return text;
+  }
+}
+
+function getOfferFromLocation(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const url = new URL(window.location.href);
+    const direct = url.searchParams.get("offer");
+    if (direct) return direct;
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    return hashParams.get("offer");
+  } catch {
+    return null;
+  }
 }
 
 function Chip({ label, color }: { label: string; color: string }) {
