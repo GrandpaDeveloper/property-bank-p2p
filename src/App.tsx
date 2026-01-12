@@ -882,6 +882,8 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
   const [answerText, setAnswerText] = React.useState("");
   const [scanOpen, setScanOpen] = React.useState(false);
   const [scanError, setScanError] = React.useState<string | null>(null);
+  const [flash, setFlash] = React.useState<{ type: "ok" | "warn"; text: string } | null>(null);
+  const flashTimer = React.useRef<number | null>(null);
 
   const [peer, setPeer] = React.useState<PeerInstance | null>(null);
   const [connId, setConnId] = React.useState<string>("");
@@ -894,6 +896,18 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
 
+  React.useEffect(() => {
+    return () => {
+      if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    };
+  }, []);
+
+  const showFlash = (text: string, type: "ok" | "warn" = "ok") => {
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    setFlash({ type, text });
+    flashTimer.current = window.setTimeout(() => setFlash(null), 2600);
+  };
+
   const destroy = () => {
     try { peer?.destroy(); } catch {}
     setPeer(null);
@@ -903,6 +917,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
     setState(null);
     setConnId("");
     setRejected(null);
+    showFlash("Desconectado.", "warn");
   };
 
   const applyOffer = (text: string) => {
@@ -921,6 +936,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
       const payload = encodeQR({ kind: "ANSWER", connId: decoded.connId, signal: sig });
       setAnswerText(payload);
       setStatus("show_answer");
+      showFlash("Answer listo. Mostralo al Banco.");
     });
 
     p.on("connect", () => {
@@ -960,6 +976,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
       setScanError(null);
       setOfferText(text);
       setScanOpen(false);
+      showFlash("Offer cargado.");
     } catch (e: any) {
       setScanError(e?.message ?? "No se pudo leer QR");
     }
@@ -1000,7 +1017,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
   return (
     <>
       <Card
-        title="Unirse por QR (Jugador)"
+        title="Unirse (Jugador)"
         right={
           <Row>
             <Btn variant="ghost" onClick={() => setScanOpen((v) => !v)}>
@@ -1012,18 +1029,30 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
           </Row>
         }
       >
-        <div style={{ display: "grid", gap: 10 }}>
+        <div className="grid gap-3">
+          {flash && (
+            <div
+              className={`animate-pop rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-wide ${
+                flash.type === "ok"
+                  ? "border-emerald-200 bg-emerald-100/80 text-emerald-900"
+                  : "border-amber-200 bg-amber-100/80 text-amber-900"
+              }`}
+            >
+              {flash.text}
+            </div>
+          )}
+
           <div>
-            <Label>Tu nombre (para reconexión usá el mismo)</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Tute" />
+            <Label>Tu nombre</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Vale" />
           </div>
 
           {scanOpen && (
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                Escaneá el QR Offer que te muestra el Banco.
+            <div className="grid gap-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+                Escaneá el Offer del Banco.
               </div>
-              <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border)" }}>
+              <div className="overflow-hidden rounded-2xl border border-emerald-900/15">
                 <Scanner
                   onScan={(codes: IDetectedBarcode[]) => {
                     const raw = codes?.[0]?.rawValue;
@@ -1032,13 +1061,13 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                   onError={(error: unknown) => console.warn(error)}
                 />
               </div>
-              {scanError && <div style={{ color: "var(--danger)", fontWeight: 900 }}>{scanError}</div>}
+              {scanError && <div className="text-xs font-black uppercase tracking-wide text-red-700">{scanError}</div>}
             </div>
           )}
 
           <div>
             <Label>Offer (pegá o escaneá)</Label>
-            <Textarea value={offerText} onChange={(e) => setOfferText(e.target.value)} placeholder="Pegá aquí el Offer si no usás cámara" />
+            <Textarea value={offerText} onChange={(e) => setOfferText(e.target.value)} placeholder="Pegá el texto del Offer" />
           </div>
 
           <Row>
@@ -1046,11 +1075,11 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
               onClick={() => {
                 setRejected(null);
                 if (!name.trim()) {
-                  alert("Primero poné tu nombre.");
+                  showFlash("Ingresá tu nombre.", "warn");
                   return;
                 }
                 if (!offerText.trim()) {
-                  alert("Necesitás un Offer del Banco.");
+                  showFlash("Necesitás el Offer.", "warn");
                   return;
                 }
                 applyOffer(offerText.trim());
@@ -1064,7 +1093,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                 variant="ghost"
                 onClick={() => {
                   navigator.clipboard?.writeText(answerText);
-                  alert("Answer copiado");
+                  showFlash("Answer copiado.");
                 }}
               >
                 Copiar Answer
@@ -1073,9 +1102,9 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
           </Row>
 
           {answerText && (
-            <div style={{ display: "grid", justifyItems: "center", gap: 8 }}>
+            <div className="grid justify-items-center gap-2">
               <QRCodeCanvas value={answerText} size={220} includeMargin />
-              <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+              <div className="text-center text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
                 Mostrale este QR al Banco para que escanee el <b>Answer</b>.
               </div>
             </div>
@@ -1100,25 +1129,25 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
           </Row>
 
           {rejected && (
-            <div style={{ padding: 10, borderRadius: 14, border: "1px solid rgba(185,28,28,0.35)", background: "rgba(185,28,28,0.08)" }}>
-              <div style={{ fontWeight: 900, color: "var(--danger)" }}>Rechazado por el Banco</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{rejected}</div>
+            <div className="rounded-2xl border border-red-200 bg-red-100/60 p-3">
+              <div className="text-xs font-black uppercase tracking-wide text-red-700">Rechazado por el Banco</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">{rejected}</div>
             </div>
           )}
         </div>
       </Card>
 
-      <Card title="Mi estado">
+      <Card title="Mi estado (simple)">
         {!state ? (
-          <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.4 }}>
-            Cuando el Banco acepte tu unión y se conecten, vas a ver tu saldo y propiedades acá.
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+            Esperando conexión del Banco.
           </div>
         ) : !me ? (
-          <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.4 }}>
-            Conectado, pero todavía no estás aceptado (o tu nombre no coincide). Pedile al Banco que acepte tu solicitud.
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+            Conectado, pero falta aceptación del Banco.
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="grid gap-3">
             <Row>
               <Chip label={me.name} color="#111827" />
               <Chip label={`Saldo: ${formatMoney(me.balance)}`} color="#2ECC71" />
@@ -1127,9 +1156,9 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
 
             <Divider />
 
-            <div style={{ fontWeight: 900 }}>Mis propiedades</div>
+            <div className="text-xs font-black uppercase tracking-wide text-emerald-950">Mis propiedades</div>
             {myProps.length === 0 ? (
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>Sin propiedades por ahora.</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">Sin propiedades.</div>
             ) : (
               <Row>
                 {myProps.map((d) => {
@@ -1141,12 +1170,9 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                       style={{
                         border: `1px solid ${c}`,
                         background: softBg(c),
-                        borderRadius: 999,
-                        padding: "8px 10px",
-                        fontSize: 12,
-                        fontWeight: 900,
                         opacity: ps.mortgaged ? 0.65 : 1,
                       }}
+                      className="rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-950"
                       title={ps.mortgaged ? "Hipotecada" : "Activa"}
                     >
                       {d.label}
@@ -1163,11 +1189,11 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
 
       <Card title="Otros jugadores">
         {!state ? (
-          <div style={{ fontSize: 13, color: "var(--muted)" }}>Esperando estado…</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">Esperando estado…</div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="grid gap-3">
             {Object.keys(state.players).length === 0 ? (
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>No hay jugadores.</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">No hay jugadores.</div>
             ) : (
               Object.keys(state.players).map((k) => {
                 const p = state.players[k];
@@ -1175,11 +1201,13 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                 return (
                   <div key={k} className={rowBlock()}>
                     <Row>
-                      <div style={{ fontWeight: 900 }}>
+                      <div className="text-sm font-black">
                         {p.name} {me?.key === k ? <span style={{ color: "var(--muted)", fontSize: 12 }}>(vos)</span> : null}
                       </div>
-                      <span style={{ fontSize: 12, color: "var(--muted)" }}>{p.connected ? "online" : "offline"}</span>
-                      <div style={{ marginLeft: "auto", fontWeight: 900 }}>{formatMoney(p.balance)}</div>
+                      <span className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+                        {p.connected ? "online" : "offline"}
+                      </span>
+                      <div className="ml-auto text-sm font-black">{formatMoney(p.balance)}</div>
                     </Row>
                     <Row>
                       {owned.length ? (
@@ -1194,12 +1222,9 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                               style={{
                                 border: `1px solid ${c}`,
                                 background: softBg(c),
-                                borderRadius: 999,
-                                padding: "6px 10px",
-                                fontSize: 12,
-                                fontWeight: 900,
                                 opacity: mort ? 0.65 : 1,
                               }}
+                              className="rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-950"
                               title={mort ? "Hipotecada" : "Activa"}
                             >
                               {d.label}{mort ? " (H)" : ""}
@@ -1207,7 +1232,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                           );
                         })
                       ) : (
-                        <span style={{ fontSize: 12, color: "var(--muted)" }}>Sin propiedades</span>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">Sin propiedades</span>
                       )}
                     </Row>
                   </div>
@@ -1218,15 +1243,15 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
         )}
       </Card>
 
-      <Card title="Solicitud (opcional) al Banco">
+      <Card title="Solicitud rápida al Banco">
         {!peer || status !== "connected" ? (
-          <div style={{ fontSize: 13, color: "var(--muted)" }}>
-            Conectate primero para poder mandar solicitudes.
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+            Conectate primero.
           </div>
         ) : !state ? (
-          <div style={{ fontSize: 13, color: "var(--muted)" }}>Esperando estado…</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">Esperando estado…</div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="grid gap-3">
             <Label>Destino</Label>
             <Select value={reqTo} onChange={(e) => setReqTo(e.target.value)}>
               <option value="BANK">BANCO</option>
@@ -1249,7 +1274,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
               onClick={() => {
                 const amt = Number(reqAmt);
                 if (!Number.isFinite(amt) || amt <= 0) {
-                  alert("Monto inválido.");
+                  showFlash("Monto inválido.", "warn");
                   return;
                 }
                 safeSend(peer, {
@@ -1257,7 +1282,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                   connId: connId,
                   req: { k: "PAY", toName: reqTo, amount: amt, note: reqNote },
                 });
-                alert("Solicitud enviada (el Banco la registrará).");
+                showFlash("Solicitud enviada.");
               }}
             >
               Enviar solicitud

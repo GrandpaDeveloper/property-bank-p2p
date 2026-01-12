@@ -21,7 +21,7 @@ export function Btn(
 ) {
   const v = props.variant ?? "primary";
   const base =
-    "rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-wide transition";
+    "rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-wide transition active:scale-95";
   const style =
     v === "danger"
       ? `${base} border-red-200 bg-red-100/70 text-red-700 hover:bg-red-100`

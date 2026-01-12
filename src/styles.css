@@ -23,3 +23,12 @@ body {
 }
 
 a { color: inherit; }
+
+@keyframes pop {
+  0% { transform: scale(0.96); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-pop {
+  animation: pop 180ms ease-out;
+}
