@@ -80,11 +80,11 @@ export default function App() {
   });
 
   return (
-    <div className="container">
-      <div className="header">
+    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 pb-10 pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-900/15 bg-white/70 px-4 py-3 shadow-sm">
         <div className="brand">
-          <h1>Property Bank (P2P)</h1>
-          <p>sin backend • QR • mobile</p>
+          <h1 className="m-0 text-sm font-black uppercase tracking-[0.2em] text-emerald-950">Property Bank</h1>
+          <p className="m-0 text-xs font-semibold uppercase tracking-wide text-emerald-900/60">sin backend • QR • mobile</p>
         </div>
         <Row>
           <Btn variant={persist.role === "bank" ? "primary" : "ghost"} onClick={() => setPersist({ ...persist, role: "bank" })}>
@@ -96,7 +96,7 @@ export default function App() {
         </Row>
       </div>
 
-      <div className="grid">
+      <div className="grid gap-4 lg:grid-cols-2">
         {persist.role === "bank" ? (
           <BankScreen persist={persist} setPersist={setPersist} />
         ) : (
@@ -104,7 +104,7 @@ export default function App() {
         )}
       </div>
 
-      <div style={{ marginTop: 14, color: "var(--muted)", fontSize: 12, lineHeight: 1.4 }}>
+      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
         Nota: app educativa no afiliada. No usa nombres oficiales; solo lógica y colores de grupos.
       </div>
     </div>
@@ -403,7 +403,7 @@ function BankScreen({ persist, setPersist }: { persist: Persisted; setPersist: (
         <Card title={`Solicitudes de unión / reconexión (${pendingJoin.length})`}>
           <div style={{ display: "grid", gap: 10 }}>
             {pendingJoin.map((r, i) => (
-              <div key={i} style={rowBlock()}>
+              <div key={i} className={rowBlock()}>
                 <div style={{ fontWeight: 900 }}>
                   {r.name}{" "}
                   <span style={{ fontSize: 12, color: "var(--muted)" }}>
@@ -442,26 +442,27 @@ function OffersPanel({ state, conns }: { state: GameState; conns: Record<string,
             c.offer
               ? encodeQR({ kind: "OFFER", gameId: state.gameId, connId: c.connId, signal: c.offer })
               : null;
+          const offerLink = offerPayload ? buildOfferLink(offerPayload) : null;
 
           return (
-            <div key={c.connId} style={rowBlock()}>
+            <div key={c.connId} className={rowBlock()}>
               <Row>
                 <div style={{ fontWeight: 900 }}>Conn: {c.connId}</div>
                 <span style={{ fontSize: 12, color: "var(--muted)" }}>
                   {c.status === "waiting_answer" ? "esperando answer" : c.status === "connected" ? "conectado" : "creando"}
                 </span>
-                {offerPayload && (
-                  <Btn variant="ghost" onClick={() => { navigator.clipboard?.writeText(offerPayload); alert("Offer copiado"); }}>
+                {offerLink && (
+                  <Btn variant="ghost" onClick={() => { navigator.clipboard?.writeText(offerLink); alert("Link copiado"); }}>
                     Copiar
                   </Btn>
                 )}
               </Row>
 
-              {offerPayload ? (
+              {offerLink ? (
                 <div style={{ display: "grid", justifyItems: "center", gap: 8, marginTop: 10 }}>
-                  <QRCodeCanvas value={offerPayload} size={220} includeMargin />
+                  <QRCodeCanvas value={offerLink} size={220} includeMargin />
                   <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
-                    El jugador escanea este QR, genera un <b>Answer</b> y lo devolvés con tu escáner.
+                    El jugador escanea este QR y entra directo a la partida (link).
                   </div>
                 </div>
               ) : (
@@ -536,7 +537,7 @@ function BankPlayers({ state, mutate }: { state: GameState; mutate: (fn: (s: Gam
             keys.map((k) => {
               const p = state.players[k];
               return (
-                <div key={k} style={rowBlock()}>
+                <div key={k} className={rowBlock()}>
                   <Row>
                     <div style={{ fontWeight: 900 }}>{p.name}</div>
                     <span style={{ fontSize: 12, color: "var(--muted)" }}>{p.connected ? "online" : "offline"}</span>
@@ -567,10 +568,19 @@ function BankProperties({ state, mutate }: { state: GameState; mutate: (fn: (s: 
         <Select value={propId} onChange={(e) => setPropId(e.target.value)}>
           {PROPERTY_DEFS.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.label} • {p.id}
+              {p.label}
             </option>
           ))}
         </Select>
+        {def && (
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+            <span
+              className="h-3 w-8 rounded-full border"
+              style={{ background: softBg(GROUP_COLORS[def.group]), borderColor: GROUP_COLORS[def.group] }}
+            />
+            Color del grupo
+          </div>
+        )}
 
         <Label>Nuevo dueño</Label>
         <Select value={owner} onChange={(e) => setOwner(e.target.value)}>
@@ -601,7 +611,7 @@ function BankProperties({ state, mutate }: { state: GameState; mutate: (fn: (s: 
             const p = state.players[k];
             const owned = Object.values(state.props).filter((x) => x.owner === k).map((x) => x.id);
             return (
-              <div key={k} style={rowBlock()}>
+              <div key={k} className={rowBlock()}>
                 <Row>
                   <div style={{ fontWeight: 900 }}>{p.name}</div>
                   <div style={{ marginLeft: "auto", fontWeight: 900 }}>{formatMoney(p.balance)}</div>
@@ -654,8 +664,17 @@ function BankBuildMortgage({ state, mutate }: { state: GameState; mutate: (fn: (
       <div style={{ display: "grid", gap: 10 }}>
         <Label>Propiedad</Label>
         <Select value={propId} onChange={(e) => setPropId(e.target.value)}>
-          {PROPERTY_DEFS.map((p) => <option key={p.id} value={p.id}>{p.label} • {p.id}</option>)}
+          {PROPERTY_DEFS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </Select>
+        {def && (
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+            <span
+              className="h-3 w-8 rounded-full border"
+              style={{ background: softBg(GROUP_COLORS[def.group]), borderColor: GROUP_COLORS[def.group] }}
+            />
+            Color del grupo
+          </div>
+        )}
 
         <Row>
           <Chip label={`Dueño: ${ownerName}`} color="#111827" />
@@ -809,7 +828,7 @@ function BankAuctions({ state, mutate }: { state: GameState; mutate: (fn: (s: Ga
         <Select value={propId} onChange={(e) => setPropId(e.target.value)}>
           {q.map((id) => {
             const d = PROPERTY_DEFS.find((x) => x.id === id);
-            return <option key={id} value={id}>{d?.label ?? id} • {id}</option>;
+            return <option key={id} value={id}>{d?.label ?? id}</option>;
           })}
         </Select>
 
@@ -848,14 +867,24 @@ function Audit({ state }: { state: GameState }) {
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
           {state.tx.slice(0, 40).map((t) => (
-            <div key={t.id} style={{ border: "1px solid var(--border)", borderRadius: 14, padding: 10, background: "rgba(255,255,255,0.65)" }}>
-              <div style={{ fontSize: 12, color: "var(--muted)" }}>{new Date(t.ts).toLocaleTimeString()}</div>
-              <div style={{ fontWeight: 900 }}>
-                {playerDisplay(state, t.from as any)} → {playerDisplay(state, t.to as any)}
-                {typeof t.amount === "number" ? `: ${formatMoney(t.amount)}` : ""}
-                {t.propertyId ? ` • ${t.propertyId}` : ""}
+            <div key={t.id} className="rounded-2xl border border-emerald-900/15 bg-white/70 p-3 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+                {new Date(t.ts).toLocaleTimeString()}
               </div>
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{t.note}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm font-black">
+                <span>
+                  {playerDisplay(state, t.from as any)} → {playerDisplay(state, t.to as any)}
+                  {typeof t.amount === "number" ? `: ${formatMoney(t.amount)}` : ""}
+                </span>
+                {t.propertyId ? (
+                  (() => {
+                    const def = PROPERTY_DEFS.find((p) => p.id === t.propertyId);
+                    const color = def ? GROUP_COLORS[def.group] : "#111827";
+                    return <Chip label={def?.label ?? t.propertyId} color={color} />;
+                  })()
+                ) : null}
+              </div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">{t.note}</div>
             </div>
           ))}
         </div>
@@ -872,6 +901,9 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
   const [answerText, setAnswerText] = React.useState("");
   const [scanOpen, setScanOpen] = React.useState(false);
   const [scanError, setScanError] = React.useState<string | null>(null);
+  const [flash, setFlash] = React.useState<{ type: "ok" | "warn"; text: string } | null>(null);
+  const flashTimer = React.useRef<number | null>(null);
+  const autoJoinRef = React.useRef(false);
 
   const [peer, setPeer] = React.useState<PeerInstance | null>(null);
   const [connId, setConnId] = React.useState<string>("");
@@ -884,6 +916,38 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
 
+  React.useEffect(() => {
+    return () => {
+      if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const offerFromLink = getOfferFromLocation();
+    if (offerFromLink) {
+      setOfferText(offerFromLink);
+      showFlash("Offer cargado desde link.");
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!offerText.trim() || !name.trim() || status !== "idle" || autoJoinRef.current) return;
+    autoJoinRef.current = true;
+    try {
+      applyOffer(offerText.trim());
+      showFlash("Conectando...");
+    } catch (e: any) {
+      autoJoinRef.current = false;
+      showFlash(e?.message ?? "Offer inválido.", "warn");
+    }
+  }, [offerText, name, status]);
+
+  const showFlash = (text: string, type: "ok" | "warn" = "ok") => {
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    setFlash({ type, text });
+    flashTimer.current = window.setTimeout(() => setFlash(null), 2600);
+  };
+
   const destroy = () => {
     try { peer?.destroy(); } catch {}
     setPeer(null);
@@ -893,10 +957,12 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
     setState(null);
     setConnId("");
     setRejected(null);
+    showFlash("Desconectado.", "warn");
   };
 
   const applyOffer = (text: string) => {
-    const decoded = decodeQR<{ kind: "OFFER"; gameId: string; connId: string; signal: SignalData }>(text);
+    const normalized = normalizeOfferText(text);
+    const decoded = decodeQR<{ kind: "OFFER"; gameId: string; connId: string; signal: SignalData }>(normalized);
     if (decoded.kind !== "OFFER") throw new Error("QR no es OFFER");
 
     setConnId(decoded.connId);
@@ -911,6 +977,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
       const payload = encodeQR({ kind: "ANSWER", connId: decoded.connId, signal: sig });
       setAnswerText(payload);
       setStatus("show_answer");
+      showFlash("Answer listo. Mostralo al Banco.");
     });
 
     p.on("connect", () => {
@@ -948,8 +1015,9 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
   const onScanOffer = (text: string) => {
     try {
       setScanError(null);
-      setOfferText(text);
+      setOfferText(normalizeOfferText(text));
       setScanOpen(false);
+      showFlash("Offer cargado.");
     } catch (e: any) {
       setScanError(e?.message ?? "No se pudo leer QR");
     }
@@ -990,7 +1058,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
   return (
     <>
       <Card
-        title="Unirse por QR (Jugador)"
+        title="Unirse (Jugador)"
         right={
           <Row>
             <Btn variant="ghost" onClick={() => setScanOpen((v) => !v)}>
@@ -1002,18 +1070,30 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
           </Row>
         }
       >
-        <div style={{ display: "grid", gap: 10 }}>
+        <div className="grid gap-3">
+          {flash && (
+            <div
+              className={`animate-pop rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-wide ${
+                flash.type === "ok"
+                  ? "border-emerald-200 bg-emerald-100/80 text-emerald-900"
+                  : "border-amber-200 bg-amber-100/80 text-amber-900"
+              }`}
+            >
+              {flash.text}
+            </div>
+          )}
+
           <div>
-            <Label>Tu nombre (para reconexión usá el mismo)</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Tute" />
+            <Label>Tu nombre</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Vale" />
           </div>
 
           {scanOpen && (
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                Escaneá el QR Offer que te muestra el Banco.
+            <div className="grid gap-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+                Escaneá el Offer del Banco.
               </div>
-              <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid var(--border)" }}>
+              <div className="overflow-hidden rounded-2xl border border-emerald-900/15">
                 <Scanner
                   onScan={(codes: IDetectedBarcode[]) => {
                     const raw = codes?.[0]?.rawValue;
@@ -1022,13 +1102,13 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                   onError={(error: unknown) => console.warn(error)}
                 />
               </div>
-              {scanError && <div style={{ color: "var(--danger)", fontWeight: 900 }}>{scanError}</div>}
+              {scanError && <div className="text-xs font-black uppercase tracking-wide text-red-700">{scanError}</div>}
             </div>
           )}
 
           <div>
             <Label>Offer (pegá o escaneá)</Label>
-            <Textarea value={offerText} onChange={(e) => setOfferText(e.target.value)} placeholder="Pegá aquí el Offer si no usás cámara" />
+            <Textarea value={offerText} onChange={(e) => setOfferText(e.target.value)} placeholder="Pegá el texto del Offer" />
           </div>
 
           <Row>
@@ -1036,14 +1116,18 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
               onClick={() => {
                 setRejected(null);
                 if (!name.trim()) {
-                  alert("Primero poné tu nombre.");
+                  showFlash("Ingresá tu nombre.", "warn");
                   return;
                 }
                 if (!offerText.trim()) {
-                  alert("Necesitás un Offer del Banco.");
+                  showFlash("Necesitás el Offer.", "warn");
                   return;
                 }
-                applyOffer(offerText.trim());
+                try {
+                  applyOffer(offerText.trim());
+                } catch (e: any) {
+                  showFlash(e?.message ?? "Offer inválido.", "warn");
+                }
               }}
             >
               Generar Answer
@@ -1054,7 +1138,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                 variant="ghost"
                 onClick={() => {
                   navigator.clipboard?.writeText(answerText);
-                  alert("Answer copiado");
+                  showFlash("Answer copiado.");
                 }}
               >
                 Copiar Answer
@@ -1063,9 +1147,9 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
           </Row>
 
           {answerText && (
-            <div style={{ display: "grid", justifyItems: "center", gap: 8 }}>
+            <div className="grid justify-items-center gap-2">
               <QRCodeCanvas value={answerText} size={220} includeMargin />
-              <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+              <div className="text-center text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
                 Mostrale este QR al Banco para que escanee el <b>Answer</b>.
               </div>
             </div>
@@ -1090,25 +1174,25 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
           </Row>
 
           {rejected && (
-            <div style={{ padding: 10, borderRadius: 14, border: "1px solid rgba(185,28,28,0.35)", background: "rgba(185,28,28,0.08)" }}>
-              <div style={{ fontWeight: 900, color: "var(--danger)" }}>Rechazado por el Banco</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{rejected}</div>
+            <div className="rounded-2xl border border-red-200 bg-red-100/60 p-3">
+              <div className="text-xs font-black uppercase tracking-wide text-red-700">Rechazado por el Banco</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">{rejected}</div>
             </div>
           )}
         </div>
       </Card>
 
-      <Card title="Mi estado">
+      <Card title="Mi estado (simple)">
         {!state ? (
-          <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.4 }}>
-            Cuando el Banco acepte tu unión y se conecten, vas a ver tu saldo y propiedades acá.
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+            Esperando conexión del Banco.
           </div>
         ) : !me ? (
-          <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.4 }}>
-            Conectado, pero todavía no estás aceptado (o tu nombre no coincide). Pedile al Banco que acepte tu solicitud.
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+            Conectado, pero falta aceptación del Banco.
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="grid gap-3">
             <Row>
               <Chip label={me.name} color="#111827" />
               <Chip label={`Saldo: ${formatMoney(me.balance)}`} color="#2ECC71" />
@@ -1117,9 +1201,9 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
 
             <Divider />
 
-            <div style={{ fontWeight: 900 }}>Mis propiedades</div>
+            <div className="text-xs font-black uppercase tracking-wide text-emerald-950">Mis propiedades</div>
             {myProps.length === 0 ? (
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>Sin propiedades por ahora.</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">Sin propiedades.</div>
             ) : (
               <Row>
                 {myProps.map((d) => {
@@ -1131,12 +1215,9 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                       style={{
                         border: `1px solid ${c}`,
                         background: softBg(c),
-                        borderRadius: 999,
-                        padding: "8px 10px",
-                        fontSize: 12,
-                        fontWeight: 900,
                         opacity: ps.mortgaged ? 0.65 : 1,
                       }}
+                      className="rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-950"
                       title={ps.mortgaged ? "Hipotecada" : "Activa"}
                     >
                       {d.label}
@@ -1153,23 +1234,25 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
 
       <Card title="Otros jugadores">
         {!state ? (
-          <div style={{ fontSize: 13, color: "var(--muted)" }}>Esperando estado…</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">Esperando estado…</div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="grid gap-3">
             {Object.keys(state.players).length === 0 ? (
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>No hay jugadores.</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">No hay jugadores.</div>
             ) : (
               Object.keys(state.players).map((k) => {
                 const p = state.players[k];
                 const owned = Object.values(state.props).filter((x) => x.owner === k).map((x) => x.id);
                 return (
-                  <div key={k} style={rowBlock()}>
+                  <div key={k} className={rowBlock()}>
                     <Row>
-                      <div style={{ fontWeight: 900 }}>
+                      <div className="text-sm font-black">
                         {p.name} {me?.key === k ? <span style={{ color: "var(--muted)", fontSize: 12 }}>(vos)</span> : null}
                       </div>
-                      <span style={{ fontSize: 12, color: "var(--muted)" }}>{p.connected ? "online" : "offline"}</span>
-                      <div style={{ marginLeft: "auto", fontWeight: 900 }}>{formatMoney(p.balance)}</div>
+                      <span className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+                        {p.connected ? "online" : "offline"}
+                      </span>
+                      <div className="ml-auto text-sm font-black">{formatMoney(p.balance)}</div>
                     </Row>
                     <Row>
                       {owned.length ? (
@@ -1184,12 +1267,9 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                               style={{
                                 border: `1px solid ${c}`,
                                 background: softBg(c),
-                                borderRadius: 999,
-                                padding: "6px 10px",
-                                fontSize: 12,
-                                fontWeight: 900,
                                 opacity: mort ? 0.65 : 1,
                               }}
+                              className="rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-950"
                               title={mort ? "Hipotecada" : "Activa"}
                             >
                               {d.label}{mort ? " (H)" : ""}
@@ -1197,7 +1277,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                           );
                         })
                       ) : (
-                        <span style={{ fontSize: 12, color: "var(--muted)" }}>Sin propiedades</span>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">Sin propiedades</span>
                       )}
                     </Row>
                   </div>
@@ -1208,15 +1288,15 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
         )}
       </Card>
 
-      <Card title="Solicitud (opcional) al Banco">
+      <Card title="Solicitud rápida al Banco">
         {!peer || status !== "connected" ? (
-          <div style={{ fontSize: 13, color: "var(--muted)" }}>
-            Conectate primero para poder mandar solicitudes.
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+            Conectate primero.
           </div>
         ) : !state ? (
-          <div style={{ fontSize: 13, color: "var(--muted)" }}>Esperando estado…</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">Esperando estado…</div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="grid gap-3">
             <Label>Destino</Label>
             <Select value={reqTo} onChange={(e) => setReqTo(e.target.value)}>
               <option value="BANK">BANCO</option>
@@ -1239,7 +1319,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
               onClick={() => {
                 const amt = Number(reqAmt);
                 if (!Number.isFinite(amt) || amt <= 0) {
-                  alert("Monto inválido.");
+                  showFlash("Monto inválido.", "warn");
                   return;
                 }
                 safeSend(peer, {
@@ -1247,7 +1327,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                   connId: connId,
                   req: { k: "PAY", toName: reqTo, amount: amt, note: reqNote },
                 });
-                alert("Solicitud enviada (el Banco la registrará).");
+                showFlash("Solicitud enviada.");
               }}
             >
               Enviar solicitud
@@ -1261,13 +1341,41 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
 
 /* ------------------------------ Helpers UI ------------------------------ */
 
-function rowBlock(): React.CSSProperties {
-  return {
-    border: "1px solid var(--border)",
-    borderRadius: 16,
-    padding: 10,
-    background: "rgba(255,255,255,0.65)",
-  };
+function rowBlock(): string {
+  return "rounded-2xl border border-emerald-900/15 bg-white/70 p-3 shadow-sm";
+}
+
+function buildOfferLink(payload: string): string {
+  if (typeof window === "undefined") return payload;
+  const url = new URL(window.location.origin + window.location.pathname);
+  url.searchParams.set("offer", payload);
+  return url.toString();
+}
+
+function normalizeOfferText(text: string): string {
+  if (!text.startsWith("http")) return text;
+  try {
+    const url = new URL(text);
+    const direct = url.searchParams.get("offer");
+    if (direct) return direct;
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    return hashParams.get("offer") ?? text;
+  } catch {
+    return text;
+  }
+}
+
+function getOfferFromLocation(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const url = new URL(window.location.href);
+    const direct = url.searchParams.get("offer");
+    if (direct) return direct;
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    return hashParams.get("offer");
+  } catch {
+    return null;
+  }
 }
 
 function Chip({ label, color }: { label: string; color: string }) {
@@ -1277,11 +1385,8 @@ function Chip({ label, color }: { label: string; color: string }) {
         border: `1px solid ${color}`,
         background: softBg(color),
         borderRadius: 999,
-        padding: "6px 10px",
-        fontSize: 12,
-        fontWeight: 900,
-        whiteSpace: "nowrap",
       }}
+      className="whitespace-nowrap px-2 py-1 text-xs font-black uppercase tracking-wide text-emerald-950"
     >
       {label}
     </span>
