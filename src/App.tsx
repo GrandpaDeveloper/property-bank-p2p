@@ -80,11 +80,11 @@ export default function App() {
   });
 
   return (
-    <div className="container">
-      <div className="header">
+    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 pb-10 pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-900/15 bg-white/70 px-4 py-3 shadow-sm">
         <div className="brand">
-          <h1>Property Bank (P2P)</h1>
-          <p>sin backend • QR • mobile</p>
+          <h1 className="m-0 text-sm font-black uppercase tracking-[0.2em] text-emerald-950">Property Bank</h1>
+          <p className="m-0 text-xs font-semibold uppercase tracking-wide text-emerald-900/60">sin backend • QR • mobile</p>
         </div>
         <Row>
           <Btn variant={persist.role === "bank" ? "primary" : "ghost"} onClick={() => setPersist({ ...persist, role: "bank" })}>
@@ -96,7 +96,7 @@ export default function App() {
         </Row>
       </div>
 
-      <div className="grid">
+      <div className="grid gap-4 lg:grid-cols-2">
         {persist.role === "bank" ? (
           <BankScreen persist={persist} setPersist={setPersist} />
         ) : (
@@ -104,7 +104,7 @@ export default function App() {
         )}
       </div>
 
-      <div style={{ marginTop: 14, color: "var(--muted)", fontSize: 12, lineHeight: 1.4 }}>
+      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
         Nota: app educativa no afiliada. No usa nombres oficiales; solo lógica y colores de grupos.
       </div>
     </div>
@@ -403,7 +403,7 @@ function BankScreen({ persist, setPersist }: { persist: Persisted; setPersist: (
         <Card title={`Solicitudes de unión / reconexión (${pendingJoin.length})`}>
           <div style={{ display: "grid", gap: 10 }}>
             {pendingJoin.map((r, i) => (
-              <div key={i} style={rowBlock()}>
+              <div key={i} className={rowBlock()}>
                 <div style={{ fontWeight: 900 }}>
                   {r.name}{" "}
                   <span style={{ fontSize: 12, color: "var(--muted)" }}>
@@ -444,7 +444,7 @@ function OffersPanel({ state, conns }: { state: GameState; conns: Record<string,
               : null;
 
           return (
-            <div key={c.connId} style={rowBlock()}>
+            <div key={c.connId} className={rowBlock()}>
               <Row>
                 <div style={{ fontWeight: 900 }}>Conn: {c.connId}</div>
                 <span style={{ fontSize: 12, color: "var(--muted)" }}>
@@ -536,7 +536,7 @@ function BankPlayers({ state, mutate }: { state: GameState; mutate: (fn: (s: Gam
             keys.map((k) => {
               const p = state.players[k];
               return (
-                <div key={k} style={rowBlock()}>
+                <div key={k} className={rowBlock()}>
                   <Row>
                     <div style={{ fontWeight: 900 }}>{p.name}</div>
                     <span style={{ fontSize: 12, color: "var(--muted)" }}>{p.connected ? "online" : "offline"}</span>
@@ -601,7 +601,7 @@ function BankProperties({ state, mutate }: { state: GameState; mutate: (fn: (s: 
             const p = state.players[k];
             const owned = Object.values(state.props).filter((x) => x.owner === k).map((x) => x.id);
             return (
-              <div key={k} style={rowBlock()}>
+              <div key={k} className={rowBlock()}>
                 <Row>
                   <div style={{ fontWeight: 900 }}>{p.name}</div>
                   <div style={{ marginLeft: "auto", fontWeight: 900 }}>{formatMoney(p.balance)}</div>
@@ -848,14 +848,24 @@ function Audit({ state }: { state: GameState }) {
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
           {state.tx.slice(0, 40).map((t) => (
-            <div key={t.id} style={{ border: "1px solid var(--border)", borderRadius: 14, padding: 10, background: "rgba(255,255,255,0.65)" }}>
-              <div style={{ fontSize: 12, color: "var(--muted)" }}>{new Date(t.ts).toLocaleTimeString()}</div>
-              <div style={{ fontWeight: 900 }}>
-                {playerDisplay(state, t.from as any)} → {playerDisplay(state, t.to as any)}
-                {typeof t.amount === "number" ? `: ${formatMoney(t.amount)}` : ""}
-                {t.propertyId ? ` • ${t.propertyId}` : ""}
+            <div key={t.id} className="rounded-2xl border border-emerald-900/15 bg-white/70 p-3 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+                {new Date(t.ts).toLocaleTimeString()}
               </div>
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{t.note}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm font-black">
+                <span>
+                  {playerDisplay(state, t.from as any)} → {playerDisplay(state, t.to as any)}
+                  {typeof t.amount === "number" ? `: ${formatMoney(t.amount)}` : ""}
+                </span>
+                {t.propertyId ? (
+                  (() => {
+                    const def = PROPERTY_DEFS.find((p) => p.id === t.propertyId);
+                    const color = def ? GROUP_COLORS[def.group] : "#111827";
+                    return <Chip label={def?.label ?? t.propertyId} color={color} />;
+                  })()
+                ) : null}
+              </div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">{t.note}</div>
             </div>
           ))}
         </div>
@@ -1163,7 +1173,7 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
                 const p = state.players[k];
                 const owned = Object.values(state.props).filter((x) => x.owner === k).map((x) => x.id);
                 return (
-                  <div key={k} style={rowBlock()}>
+                  <div key={k} className={rowBlock()}>
                     <Row>
                       <div style={{ fontWeight: 900 }}>
                         {p.name} {me?.key === k ? <span style={{ color: "var(--muted)", fontSize: 12 }}>(vos)</span> : null}
@@ -1261,13 +1271,8 @@ function PlayerScreen({ persist, setPersist }: { persist: Persisted; setPersist:
 
 /* ------------------------------ Helpers UI ------------------------------ */
 
-function rowBlock(): React.CSSProperties {
-  return {
-    border: "1px solid var(--border)",
-    borderRadius: 16,
-    padding: 10,
-    background: "rgba(255,255,255,0.65)",
-  };
+function rowBlock(): string {
+  return "rounded-2xl border border-emerald-900/15 bg-white/70 p-3 shadow-sm";
 }
 
 function Chip({ label, color }: { label: string; color: string }) {
@@ -1277,11 +1282,8 @@ function Chip({ label, color }: { label: string; color: string }) {
         border: `1px solid ${color}`,
         background: softBg(color),
         borderRadius: 999,
-        padding: "6px 10px",
-        fontSize: 12,
-        fontWeight: 900,
-        whiteSpace: "nowrap",
       }}
+      className="whitespace-nowrap px-2 py-1 text-xs font-black uppercase tracking-wide text-emerald-950"
     >
       {label}
     </span>
