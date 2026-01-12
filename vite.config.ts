@@ -4,16 +4,8 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   base: "/property-bank-p2p/",
   plugins: [react()],
-  define: {
-    global: "globalThis",
-  },
-  // Ayuda especialmente en dev (prebundle de deps)
+  define: { global: "globalThis" },
   optimizeDeps: {
-    esbuildOptions: {
-      define: {
-        global: "globalThis",
-      },
-    },
+    esbuildOptions: { define: { global: "globalThis" } },
   },
 });
-  
