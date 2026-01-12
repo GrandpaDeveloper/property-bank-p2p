@@ -2,12 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  base: "/property-bank-p2p/",
   plugins: [react()],
-  resolve: {
-    alias: {
-      "simple-peer": "simple-peer/simplepeer.min.js",
-    },
-  },
   define: {
     global: "globalThis",
   },
@@ -20,3 +16,4 @@ export default defineConfig({
     },
   },
 });
+  
