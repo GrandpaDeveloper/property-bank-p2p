@@ -567,10 +567,19 @@ function BankProperties({ state, mutate }: { state: GameState; mutate: (fn: (s: 
         <Select value={propId} onChange={(e) => setPropId(e.target.value)}>
           {PROPERTY_DEFS.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.label} • {p.id}
+              {p.label}
             </option>
           ))}
         </Select>
+        {def && (
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+            <span
+              className="h-3 w-8 rounded-full border"
+              style={{ background: softBg(GROUP_COLORS[def.group]), borderColor: GROUP_COLORS[def.group] }}
+            />
+            Color del grupo
+          </div>
+        )}
 
         <Label>Nuevo dueño</Label>
         <Select value={owner} onChange={(e) => setOwner(e.target.value)}>
@@ -654,8 +663,17 @@ function BankBuildMortgage({ state, mutate }: { state: GameState; mutate: (fn: (
       <div style={{ display: "grid", gap: 10 }}>
         <Label>Propiedad</Label>
         <Select value={propId} onChange={(e) => setPropId(e.target.value)}>
-          {PROPERTY_DEFS.map((p) => <option key={p.id} value={p.id}>{p.label} • {p.id}</option>)}
+          {PROPERTY_DEFS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </Select>
+        {def && (
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-900/60">
+            <span
+              className="h-3 w-8 rounded-full border"
+              style={{ background: softBg(GROUP_COLORS[def.group]), borderColor: GROUP_COLORS[def.group] }}
+            />
+            Color del grupo
+          </div>
+        )}
 
         <Row>
           <Chip label={`Dueño: ${ownerName}`} color="#111827" />
@@ -809,7 +827,7 @@ function BankAuctions({ state, mutate }: { state: GameState; mutate: (fn: (s: Ga
         <Select value={propId} onChange={(e) => setPropId(e.target.value)}>
           {q.map((id) => {
             const d = PROPERTY_DEFS.find((x) => x.id === id);
-            return <option key={id} value={id}>{d?.label ?? id} • {id}</option>;
+            return <option key={id} value={id}>{d?.label ?? id}</option>;
           })}
         </Select>
 
